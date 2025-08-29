@@ -32,7 +32,7 @@ body {
 .view {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 2px;
   padding: 16px;
 }
 
@@ -79,7 +79,7 @@ body {
   position: relative;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 8px 14px 14px 8px;
   box-shadow: var(--shadow);
 }
 
@@ -97,12 +97,27 @@ body {
   border-color: #dbe0e6;
 }
 
-/* Highlight ON devices */
-.card--on {
-  background: #ecfdf5; /* green-50 */
-  border-color: #a7f3d0; /* green-200 */
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.12);
+/* vạch màu bên trái */
+.list__item.card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-top-left-radius: 14px; /* bo khớp góc */
+  border-bottom-left-radius: 14px;
+  background: transparent;
+  transition: background 0.2s;
 }
+
+/* màu theo trạng thái */
+.list__item.card[data-status="on"]::before {
+  background: #16a34a;
+} /* emerald-500 */
+.list__item.card[data-status="off"]::before {
+  background: #ef4444;
+} /* rose-500 */
 
 .list__item {
   padding: 16px 16px 18px;
@@ -111,11 +126,11 @@ body {
 .list__meta {
   display: grid;
   gap: 6px;
-  padding-right: 36px; /* chừa chỗ cho icon edit */
+  padding-right: 24px; /* chừa chỗ cho icon edit */
 }
 .list__title {
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: 600;
+  font-size: 15px;
 }
 .list__subtitle {
   color: var(--muted);
@@ -129,13 +144,13 @@ body {
 /* Edit icon (top-right) */
 .icon-btn {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 0px;
+  right: 0px;
   display: grid;
   place-items: center;
   width: 36px;
   height: 36px;
-  border-radius: 12px;
+  border-radius: 0 12px 0 12px;
   border: 1px solid var(--border);
   background: #fff;
   cursor: pointer;
@@ -190,12 +205,12 @@ body {
 
 /* ====== Badges ====== */
 .badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  border-radius: 12px 0 12px 0;
   font-weight: 700;
   padding: 2px 8px;
-  border-radius: 999px;
   font-size: 12px;
   line-height: 20px;
   border: 1px solid transparent;
@@ -203,12 +218,12 @@ body {
 .badge--success {
   color: #065f46;
   background: #d1fae5;
-  border-color: #a7f3d0;
+  border-color: #d1fae5;
 }
 .badge--danger {
   color: #991b1b;
   background: #fee2e2;
-  border-color: #fecaca;
+  border-color: #fee2e2;
 }
 .badge--neutral {
   color: #1f2937;
