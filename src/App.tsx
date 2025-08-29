@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import Login from "./features/auth/Login";
 import DeviceListView from "./views/DeviceListView";
 import DeviceConfigView from "./views/DeviceConfigView";
-import { getToken } from "./services/authToken";
+import { getToken, onLogoutEvent } from "./services/authToken";
+import { scheduleAutoLogout } from "./services/authService";
 import { fetchDeviceList, updateDevice } from "./services/authService";
 import { useAuthState } from "./hooks/useAuth";
 import { Device } from "./types/device";
@@ -15,6 +16,13 @@ function Main() {
   const [editDevice, setEditDevice] = useState<Device | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+
+  // Auto-logout wiring: schedule by token expiry and listen 401 events
+  useEffect(() => {
+    scheduleAutoLogout();
+    const off = onLogoutEvent(() => logout());
+    return () => off();
+  }, [logout, authed]);
 
   const token = getToken();
   const { data, isLoading, isError, refetch } = useQuery({
