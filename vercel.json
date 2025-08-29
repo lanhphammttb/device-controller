@@ -1,5 +1,12 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "http://118.107.77.104:2001/$1" }
+    {
+      "source": "/api/(.*)",
+      "destination": "http://118.107.77.104:2001/api/$1"
+    },
+    {
+      "source": "/auth/(.*)",
+      "destination": "https://gateway-ttn.tayninh.gov.vn/$1"
+    }
   ]
 }

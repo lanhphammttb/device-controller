@@ -7,7 +7,7 @@ import {
 } from "./authToken";
 
 // Configure a shared axios instance
-export const api = axios.create();
+export const api = axios.create({ baseURL: "/api" }); // ✅ same-origin
 
 // Attach Authorization header
 api.interceptors.request.use((config) => {
@@ -51,7 +51,7 @@ export const updateConnectDevice = async (
   token: string
 ) => {
   const response = await api.post(
-    "http://118.107.77.104:2001/api/device/update-connect-device",
+    "/device/update-connect-device",
     { maThietBi, ketNoi }
   );
   return response.data;
@@ -71,26 +71,19 @@ export const updateDevice = async (device: any, token: string) => {
         : String(device.viDo),
   };
   const response = await api.post(
-    "http://118.107.77.104:2001/api/device/update",
+    "/device/update",
     payload
   );
   return response.data;
 };
-export const fetchDeviceList = async (token: string) => {
-  const response = await api.get(
-    "http://118.107.77.104:2001/api/device/list?page=1&pageSize=1000"
-  );
-  return response.data;
+
+export const fetchDeviceList = async () => {
+  const { data } = await api.get("/device/list", { params: { page: 1, pageSize: 1000 } });
+  return data;
 };
 
+// Login vẫn HTTPS bên ngoài (không mixed content). Nếu dính CORS thì thêm rewrite /auth sau.
 export const loginApi = async (username: string, password: string) => {
-  // Thay đổi endpoint này thành API thật nếu có
-  const response = await api.post(
-    "https://gateway-ttn.tayninh.gov.vn/oauth/token",
-    {
-      username,
-      password,
-    }
-  );
-  return response.data;
+  const res = await axios.post("https://gateway-ttn.tayninh.gov.vn/oauth/token", { username, password });
+  return res.data;
 };
