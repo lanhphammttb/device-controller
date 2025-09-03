@@ -64,9 +64,7 @@ export default function DeviceConfigView({
           <div
             className={[
               "notice",
-              saveMsg.includes("thành công")
-                ? "notice--success"
-                : "notice--danger",
+              !saveMsg.includes("Không") ? "notice--success" : "notice--danger",
             ].join(" ")}
           >
             {saveMsg}

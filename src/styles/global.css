@@ -302,6 +302,7 @@ body {
   border: 1px solid var(--border);
   background: #fff;
   font-size: 14px;
+  margin-bottom: 8px;
 }
 .notice--info {
   border-color: #c7d2fe;
@@ -318,6 +319,18 @@ body {
   background: #fef2f2;
   color: #7f1d1d;
 }
+
+/* màu theo trạng thái */
+.notice[data-status="success"] {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #065f46;
+} /* emerald-500 */
+.notice[data-status="danger"] {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #7f1d1d;
+} /* rose-500 */
 
 /* ====== Card spacing for forms ====== */
 .card .hint {

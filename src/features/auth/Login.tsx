@@ -20,9 +20,14 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
         onSuccess: (data) => {
           // Lấy token từ data.NoiDung.Token (theo API của bạn)
           const token = data?.NoiDung?.Token ?? null;
-          if (token) {
+          const status = data?.TrangThaiGui === 0;
+          if (token && status) {
             setLoginToken(token);
             onSuccess?.(token);
+          } else {
+            throw new Error(
+              data?.NoiDung?.ThongBao ?? "Đăng nhập không thành công"
+            );
           }
         },
       }
@@ -53,17 +58,17 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
               required
             />
           </div>
-          <div className="form__row form__row--actions">
-            <Button className="btn--primary" type="submit" disabled={isPending}>
-              {isPending ? "Đang đăng nhập..." : "Đăng nhập"}
-            </Button>
-          </div>
           {isError && (
             <div className="notice notice--danger">Đăng nhập thất bại</div>
           )}
           {loginToken && (
             <div className="notice notice--success">Đăng nhập thành công!</div>
           )}
+          <div className="form__row form__row--actions">
+            <Button className="btn--primary" type="submit" disabled={isPending}>
+              {isPending ? "Đang đăng nhập..." : "Đăng nhập"}
+            </Button>
+          </div>
         </form>
       </div>
     </div>

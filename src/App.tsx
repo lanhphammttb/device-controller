@@ -65,10 +65,14 @@ function Main() {
     try {
       const token = getToken();
       if (!token) throw new Error("Không có token");
-      await updateDevice(updated, token);
-      setSaveMsg("Cập nhật thành công!");
-      setEditDevice(null);
-      refetch();
+      const result = await updateDevice(updated, token);
+      if (result?.status === 1) {
+        setSaveMsg(result.message || "Cập nhật thành công!");
+        setEditDevice(null);
+        refetch();
+      } else {
+        setSaveMsg(result?.message || "Cập nhật thất bại!");
+      }
     } catch {
       setSaveMsg("Cập nhật thất bại!");
     } finally {
