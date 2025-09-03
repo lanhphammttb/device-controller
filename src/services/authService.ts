@@ -50,40 +50,42 @@ export const updateConnectDevice = async (
   ketNoi: boolean,
   token: string
 ) => {
-  const response = await api.post(
-    "/device/update-connect-device",
-    { maThietBi, ketNoi }
-  );
+  const response = await api.post("/device/update-connect-device", {
+    maThietBi,
+    ketNoi,
+  });
   return response.data;
 };
 export const updateDevice = async (device: any, token: string) => {
+  const toStrOrZero = (v: any) => {
+    if (v === undefined || v === null) return "0";
+    if (typeof v === "string") {
+      const t = v.trim();
+      return t === "" ? "0" : t;
+    }
+    return String(v);
+  };
   const payload = {
     ...device,
-    kinhDo:
-      device.kinhDo === undefined ||
-      device.kinhDo === null ||
-      device.kinhDo === ""
-        ? null
-        : String(device.kinhDo),
-    viDo:
-      device.viDo === undefined || device.viDo === null || device.viDo === ""
-        ? null
-        : String(device.viDo),
+    kinhDo: toStrOrZero(device.kinhDo),
+    viDo: toStrOrZero(device.viDo),
   };
-  const response = await api.post(
-    "/device/update",
-    payload
-  );
+  const response = await api.post("/device/update", payload);
   return response.data;
 };
 
 export const fetchDeviceList = async () => {
-  const { data } = await api.get("/device/list", { params: { page: 1, pageSize: 1000 } });
+  const { data } = await api.get("/device/list", {
+    params: { page: 1, pageSize: 1000 },
+  });
   return data;
 };
 
 // Login vẫn HTTPS bên ngoài (không mixed content). Nếu dính CORS thì thêm rewrite /auth sau.
 export const loginApi = async (username: string, password: string) => {
-  const res = await axios.post("https://gateway-ttn.tayninh.gov.vn/oauth/token", { username, password });
+  const res = await axios.post(
+    "https://gateway-ttn.tayninh.gov.vn/oauth/token",
+    { username, password }
+  );
   return res.data;
 };
