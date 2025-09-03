@@ -8,6 +8,18 @@ export function DeviceCard({
   d: any;
   onEdit: (d: any) => void;
 }) {
+  const formatDateTime = (s?: string) => {
+    if (!s) return "—";
+    const dt = new Date(s);
+    if (isNaN(dt.getTime())) return s;
+    const d = dt.getDate();
+    const m = dt.getMonth() + 1;
+    const yy = String(dt.getFullYear() % 100).padStart(2, "0");
+    const h = dt.getHours();
+    const min = dt.getMinutes();
+    const sec = dt.getSeconds();
+    return `${h}:${min}:${sec} ${d}/${m}/${yy}`;
+  };
   return (
     <li
       className={["list__item", "card", "card--hover"]
@@ -19,8 +31,10 @@ export function DeviceCard({
       <div className="list__meta">
         <div className="list__title">{d.tenThietBi || ""}</div>
         <div className="list__subtitle">
-          <span className="mono">{d.maThietBi || "—"}</span> •{" "}
-          {d.maNhaCungCap || "—"}
+          <span className="mono">{d.maThietBi || "—"}</span>{" "}
+          <span className="list__subtitle-faded">
+            • {d.maNhaCungCap || "—"}
+          </span>
         </div>
       </div>
 
@@ -48,6 +62,15 @@ export function DeviceCard({
           />
         </svg>
       </button>
+
+      {/* subtle timestamp at bottom-right, offset from the badge */}
+      <span
+        className="card__timestamp"
+        title={d.ngayKhoiTao || ""}
+        aria-label="Thời gian khởi tạo"
+      >
+        {formatDateTime(d.ngayKhoiTao)}
+      </span>
     </li>
   );
 }

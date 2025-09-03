@@ -136,6 +136,9 @@ body {
   color: var(--muted);
   font-size: 13px;
 }
+.list__subtitle-faded {
+  opacity: 0.2;
+}
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono";
@@ -229,6 +232,17 @@ body {
   color: #1f2937;
   background: #e5e7eb;
   border-color: #d1d5db;
+}
+
+/* Subtle timestamp in bottom-right corner */
+.card__timestamp {
+  position: absolute;
+  bottom: 1px;
+  right: 42px; /* leave space for the badge in the very corner */
+  color: var(--muted);
+  font-size: 9px;
+  opacity: 0.2;
+  pointer-events: none;
 }
 
 /* ====== Forms ====== */
