@@ -38,9 +38,9 @@ export function DeviceCard({
         </div>
       </div>
 
-      <Badge tone={d.ketNoi ? "success" : "danger"}>
+      {/* <Badge tone={d.ketNoi ? "success" : "danger"}>
         {d.ketNoi ? "ON" : "OFF"}
-      </Badge>
+      </Badge> */}
 
       <button
         className="icon-btn"
