@@ -135,6 +135,7 @@ export default function DeviceConfigView({
                 variant={form.ketNoi ? "primary" : "ghost"}
                 type="button"
                 onClick={() => handleKetNoi(true)}
+                disabled={form.ketNoi}
               >
                 Bật
               </Button>
@@ -142,6 +143,7 @@ export default function DeviceConfigView({
                 variant={!form.ketNoi ? "primary" : "ghost"}
                 type="button"
                 onClick={() => handleKetNoi(false)}
+                disabled={!form.ketNoi}
               >
                 Tắt
               </Button>
