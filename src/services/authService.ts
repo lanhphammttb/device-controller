@@ -12,6 +12,11 @@ export const api = axios.create({ baseURL: "/api" }); // ✅ same-origin
 // Attach Authorization header
 api.interceptors.request.use((config) => {
   const t = getToken();
+  // If token exists but is expired, trigger logout and block the request
+  if (t && isTokenExpired()) {
+    notifyLogout();
+    return Promise.reject({ message: "Token expired" });
+  }
   if (t) {
     config.headers = config.headers || {};
     (config.headers as any)["Authorization"] = `Bearer ${t}`;

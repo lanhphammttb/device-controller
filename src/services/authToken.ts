@@ -2,7 +2,18 @@ export const KEY = "cd_token";
 export const getToken = () => localStorage.getItem(KEY);
 export const setToken = (t: string) => localStorage.setItem(KEY, t);
 export const clearToken = () => localStorage.removeItem(KEY);
-export const isAuthed = () => !!getToken();
+export const isAuthed = () => {
+  const t = getToken();
+  if (!t) return false;
+  // If token is a JWT and expired, clear it and treat as unauthenticated
+  if (isTokenExpired()) {
+    try {
+      clearToken();
+    } catch {}
+    return false;
+  }
+  return true;
+};
 
 // Try to decode JWT payload safely
 function decodeJwtPayload(token: string): any | null {

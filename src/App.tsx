@@ -4,7 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import Login from "./features/auth/Login";
 import DeviceListView from "./views/DeviceListView";
 import DeviceConfigView from "./views/DeviceConfigView";
-import { getToken, onLogoutEvent } from "./services/authToken";
+import { getToken, onLogoutEvent, isTokenExpired } from "./services/authToken";
 import { scheduleAutoLogout } from "./services/authService";
 import { fetchDeviceList, updateDevice } from "./services/authService";
 import { useAuthState } from "./hooks/useAuth";
@@ -25,10 +25,16 @@ function Main() {
   }, [logout, authed]);
 
   const token = getToken();
+  // If token exists but is expired (e.g., user returns next day), logout immediately
+  useEffect(() => {
+    if (token && isTokenExpired()) {
+      logout();
+    }
+  }, [token, logout]);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["deviceList", token],
-    queryFn: () => fetchDeviceList(token!),
-    enabled: !!token && authed,
+    queryFn: () => fetchDeviceList(),
+    enabled: !!token && authed && !isTokenExpired(),
   });
 
   function handleEdit(d: any) {
