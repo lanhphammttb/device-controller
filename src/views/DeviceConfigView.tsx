@@ -23,8 +23,13 @@ export default function DeviceConfigView({
 }) {
   const [form, setForm] = useState<Device>(device);
   const [msg, setMsg] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => setForm(device), [device]);
+  useEffect(() => {
+    setForm(device);
+    setErrors({});
+    setMsg("");
+  }, [device]);
   const update = <K extends keyof Device>(k: K, v: Device[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
@@ -38,12 +43,49 @@ export default function DeviceConfigView({
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.tenThietBi || !form.maThietBi) {
-      setMsg("Vui lòng nhập Tên thiết bị và Mã thiết bị.");
+    // Validate tất cả trường trừ kinhDo/viDo
+    const requiredKeys = [
+      "tenThietBi",
+      "maThietBi",
+      "baseUrl",
+      "mqttUrl",
+      "username",
+      "password",
+      "maNhaCungCap",
+      "tenNhaCungCap",
+      "nguonID",
+      "tenNguon",
+      "dichID",
+      "tenDich",
+    ] as const;
+    const labels: Record<string, string> = {
+      tenThietBi: "Tên thiết bị",
+      maThietBi: "Mã thiết bị",
+      baseUrl: "BaseUrl",
+      mqttUrl: "MqttUrl",
+      username: "Username",
+      password: "Password",
+      maNhaCungCap: "Mã nhà cung cấp",
+      tenNhaCungCap: "Tên nhà cung cấp",
+      nguonID: "Nguồn ID",
+      tenNguon: "Tên nguồn",
+      dichID: "Đích ID",
+      tenDich: "Tên đích",
+    };
+    const newErrors: Record<string, string> = {};
+    for (const k of requiredKeys) {
+      const v = (form as any)[k];
+      if (v === undefined || v === null || String(v).trim() === "") {
+        newErrors[k] = `Vui lòng nhập ${labels[k]}.`;
+      }
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      setMsg("Vui lòng điền đầy đủ thông tin bắt buộc.");
       return;
     }
+    setMsg("");
     onSave(form);
-    setMsg("Đã lưu cấu hình.");
   }
 
   return (
@@ -93,11 +135,25 @@ export default function DeviceConfigView({
                 </label>
                 <input
                   id={key}
-                  className="input"
+                  className={`input ${
+                    errors[key as string] ? "input--error" : ""
+                  }`}
                   type={key === "password" ? "password" : "text"}
                   value={(form as any)[key] ?? ""}
-                  onChange={(e) => update(key as any, e.target.value)}
+                  onChange={(e) => {
+                    update(key as any, e.target.value);
+                    if (errors[key as string]) {
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next[key as string];
+                        return next;
+                      });
+                    }
+                  }}
                 />
+                {errors[key as string] && (
+                  <div className="error-text">{errors[key as string]}</div>
+                )}
               </div>
             ))}
             <div className="form__row">

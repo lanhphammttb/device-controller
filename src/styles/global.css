@@ -282,6 +282,17 @@ body {
   box-shadow: 0 0 0 3px var(--ring);
 }
 
+/* Form error styles */
+.input--error {
+  border-color: #ef4444 !important;
+  background: #fff7f7;
+}
+.error-text {
+  color: #b91c1c;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 /* Grid helpers */
 .grid {
   display: grid;
