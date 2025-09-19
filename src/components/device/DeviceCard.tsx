@@ -4,9 +4,11 @@ import Badge from "../ui/Badge";
 export function DeviceCard({
   d,
   onEdit,
+  isSelected = false,
 }: {
   d: any;
   onEdit: (d: any) => void;
+  isSelected?: boolean;
 }) {
   const formatDateTime = (s?: string) => {
     if (!s) return "—";
@@ -27,6 +29,11 @@ export function DeviceCard({
         .join(" ")}
       data-status={d.ketNoi ? "on" : "off"}
       key={d.maThietBi}
+      style={{
+        backgroundColor: isSelected ? "#dbeafe" : undefined,
+        borderColor: isSelected ? "#3b82f6" : undefined,
+        borderWidth: isSelected ? "2px" : undefined,
+      }}
     >
       <div className="list__meta">
         <div className="list__title">{d.tenThietBi || ""}</div>

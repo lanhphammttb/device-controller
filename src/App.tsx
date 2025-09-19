@@ -17,6 +17,16 @@ function Main() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
+  // Filter and layout state
+  const [q, setQ] = useState("");
+  const [provider, setProvider] = useState<string>("");
+  const [source, setSource] = useState<string>("");
+  const [layoutMode, setLayoutMode] = useState<"horizontal" | "columns">(
+    "columns"
+  );
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"known" | "unknown">("known");
+
   // Auto-logout wiring: schedule by token expiry and listen 401 events
   useEffect(() => {
     scheduleAutoLogout();
@@ -62,6 +72,7 @@ function Main() {
           : String(d.viDo),
     };
     setSaveMsg(null);
+    setSelectedDeviceId(d.maThietBi || "");
     setEditDevice(mapped);
   }
 
@@ -108,6 +119,18 @@ function Main() {
       isError={isError}
       onLogout={logout}
       onEdit={handleEdit}
+      // Filter and layout props
+      q={q}
+      setQ={setQ}
+      provider={provider}
+      setProvider={setProvider}
+      source={source}
+      setSource={setSource}
+      layoutMode={layoutMode}
+      setLayoutMode={setLayoutMode}
+      selectedDeviceId={selectedDeviceId}
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
     />
   );
 }
