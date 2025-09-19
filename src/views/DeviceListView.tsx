@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import TopBar from "../components/layout/TopBar";
 import Button from "../components/ui/Button";
 import { DeviceCard } from "../components/device/DeviceCard";
@@ -21,6 +21,8 @@ export default function DeviceListView({
   selectedDeviceId,
   activeTab,
   setActiveTab,
+  providerSourceTabs,
+  setProviderSourceTabs,
 }: {
   data?: any[];
   isLoading: boolean;
@@ -38,7 +40,12 @@ export default function DeviceListView({
   selectedDeviceId: string | null;
   activeTab: "known" | "unknown";
   setActiveTab: (tab: "known" | "unknown") => void;
+  providerSourceTabs: Record<string, string>;
+  setProviderSourceTabs: React.Dispatch<
+    React.SetStateAction<Record<string, string>>
+  >;
 }) {
+  // providerSourceTabs state is managed by App and persisted there
   const user = getUserClaims();
 
   const providers = useMemo(() => {
@@ -49,13 +56,22 @@ export default function DeviceListView({
     return ["", ...Array.from(set)];
   }, [data]);
 
-  const sources = useMemo(() => {
+  const sourcesForProvider = useMemo(() => {
     const set = new Set<string>();
     (data || []).forEach((d: any) => {
-      if (d.tenNguon) set.add(String(d.tenNguon));
+      const providerMatch =
+        !provider || String(d.maNhaCungCap || "") === provider;
+      if (providerMatch && d.tenNguon) set.add(String(d.tenNguon));
     });
     return ["", ...Array.from(set)];
-  }, [data]);
+  }, [data, provider]);
+
+  // Ensure current source remains valid for selected provider
+  useEffect(() => {
+    if (source && !sourcesForProvider.includes(source)) {
+      setSource("");
+    }
+  }, [provider, sourcesForProvider]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -87,41 +103,35 @@ export default function DeviceListView({
   }, [data, q, provider, source, activeTab, layoutMode]);
 
   const groupedData = useMemo(() => {
-    const groups: { [provider: string]: { [source: string]: any[] } } = {};
+    // Provider -> Source (tenNguon) -> Commune (tenDich) -> Devices
+    const groups: {
+      [provider: string]: { [source: string]: { [commune: string]: any[] } };
+    } = {};
 
     filtered.forEach((d: any) => {
-      const providerKey = d.maNhaCungCap || "Không xác định";
-      const sourceKey = d.tenNguon || "Không xác định";
+      const providerKey = String(d.maNhaCungCap || "Không xác định").trim();
+      const sourceKey = String(d.tenNguon || "Không xác định").trim();
+      const communeKey = d.tenDich || "Không xác định";
 
       if (!groups[providerKey]) {
         groups[providerKey] = {};
       }
       if (!groups[providerKey][sourceKey]) {
-        groups[providerKey][sourceKey] = [];
+        groups[providerKey][sourceKey] = {};
       }
-      groups[providerKey][sourceKey].push(d);
+      if (!groups[providerKey][sourceKey][communeKey]) {
+        groups[providerKey][sourceKey][communeKey] = [];
+      }
+      groups[providerKey][sourceKey][communeKey].push(d);
     });
 
     return groups;
   }, [filtered]);
 
+  const totalCount = data?.length || 0;
+  const filteredCount = filtered.length;
   return (
     <section className="view">
-      <TopBar
-        title="Danh sách thiết bị"
-        right={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {user && (
-              <span style={{ color: "#6b7280", fontSize: 14 }}>
-                {user.name || user.id || user.email}
-              </span>
-            )}
-            <Button className="btn--ghost" onClick={onLogout}>
-              Đăng xuất
-            </Button>
-          </div>
-        }
-      />
       <div className="content">
         <div className="card card--padded" style={{ marginBottom: 12 }}>
           <div
@@ -161,35 +171,31 @@ export default function DeviceListView({
               >
                 Cột
               </button>
-              {layoutMode === "columns" && (
-                <>
-                  <div
-                    style={{
-                      width: "1px",
-                      backgroundColor: "#e5e7eb",
-                      margin: "0 4px",
-                    }}
-                  ></div>
-                  <button
-                    className={`btn ${
-                      activeTab === "known" ? "btn--primary" : "btn--ghost"
-                    }`}
-                    onClick={() => setActiveTab("known")}
-                    style={{ fontSize: "12px", padding: "6px 12px" }}
-                  >
-                    Đã có
-                  </button>
-                  <button
-                    className={`btn ${
-                      activeTab === "unknown" ? "btn--primary" : "btn--ghost"
-                    }`}
-                    onClick={() => setActiveTab("unknown")}
-                    style={{ fontSize: "12px", padding: "6px 12px" }}
-                  >
-                    Không xác định
-                  </button>
-                </>
-              )}
+              <Button
+                className="btn--ghost"
+                onClick={onLogout}
+                title={user?.name || user?.id || user?.email || "Đăng xuất"}
+                aria-label="Đăng xuất"
+                style={{ padding: "6px 8px" }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                  focusable="false"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" x2="9" y1="12" y2="12" />
+                </svg>
+              </Button>
             </div>
           </div>
 
@@ -270,13 +276,35 @@ export default function DeviceListView({
                 onChange={(e) => setSource(e.target.value)}
                 style={{ width: "100%" }}
               >
-                {sources.map((s) => (
+                {sourcesForProvider.map((s) => (
                   <option key={s || "all"} value={s}>
                     {s ? s : "Tất cả"}
                   </option>
                 ))}
               </select>
             </div>
+            {layoutMode === "columns" && provider === "" && source === "" && (
+              <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
+                <button
+                  className={`btn ${
+                    activeTab === "known" ? "btn--primary" : "btn--ghost"
+                  }`}
+                  onClick={() => setActiveTab("known")}
+                  style={{ fontSize: "12px", padding: "6px 12px" }}
+                >
+                  Đã có
+                </button>
+                <button
+                  className={`btn ${
+                    activeTab === "unknown" ? "btn--primary" : "btn--ghost"
+                  }`}
+                  onClick={() => setActiveTab("unknown")}
+                  style={{ fontSize: "12px", padding: "6px 12px" }}
+                >
+                  Không xác định
+                </button>
+              </div>
+            )}
           </div>
         </div>
         {isLoading && (
@@ -303,71 +331,146 @@ export default function DeviceListView({
           </ul>
         ) : (
           <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
-            {Object.entries(groupedData).map(([providerKey, sources]) => (
-              <div key={providerKey} style={{ flex: "1", minWidth: "300px" }}>
-                <div className="card" style={{ marginBottom: "16px" }}>
-                  <div
-                    className="card__header"
-                    style={{
-                      padding: "12px 16px",
-                      borderBottom: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <h4
+            {Object.entries(groupedData).map(
+              ([providerKey, sourcesByProvider]) => (
+                <div key={providerKey} style={{ flex: "1", minWidth: "300px" }}>
+                  <div className="card" style={{ marginBottom: "16px" }}>
+                    {/* Compact header: provider + source tabs on one line */}
+                    <div
                       style={{
-                        margin: 0,
-                        fontSize: "16px",
-                        fontWeight: "600",
-                        color: "#374151",
+                        padding: "10px 16px 16px 16px",
                       }}
                     >
-                      {providerKey}
-                    </h4>
-                  </div>
-                  <div style={{ padding: "16px" }}>
-                    {Object.entries(sources).map(([sourceKey, devices]) => (
-                      <div key={sourceKey} style={{ marginBottom: "20px" }}>
-                        <h5
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: "8px",
+                        }}
+                      >
+                        <h4
                           style={{
-                            margin: "0 0 12px 0",
+                            margin: 0,
                             fontSize: "14px",
-                            fontWeight: "500",
-                            color: "#6b7280",
-                            paddingBottom: "8px",
-                            borderBottom: "1px solid #f3f4f6",
+                            fontWeight: 700,
+                            color: "#374151",
                           }}
                         >
-                          {sourceKey}
-                          <span
-                            style={{
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              color: "#9ca3af",
-                              backgroundColor: "#f3f4f6",
-                              padding: "2px 6px",
-                              borderRadius: "10px",
-                              marginLeft: "8px",
-                            }}
-                          >
-                            {devices.length}
-                          </span>
-                        </h5>
-                        <ul className="list" style={{ margin: 0 }}>
-                          {devices.map((d: any) => (
-                            <DeviceCard
-                              key={d.maThietBi}
-                              d={d}
-                              onEdit={onEdit}
-                              isSelected={selectedDeviceId === d.maThietBi}
-                            />
-                          ))}
-                        </ul>
+                          {providerKey}
+                        </h4>
+                        <div
+                          style={{
+                            width: 1,
+                            height: 16,
+                            background: "#e5e7eb",
+                          }}
+                        />
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "4px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {(() => {
+                            const available = Object.keys(
+                              sourcesByProvider
+                            ).map((k) => String(k).trim());
+                            const saved = providerSourceTabs[providerKey];
+                            const selectedSourceForProvider =
+                              available.includes(saved) ? saved : available[0];
+                            return available.map((sourceKey) => {
+                              const sourceCount = Object.values(
+                                sourcesByProvider[sourceKey] || {}
+                              ).reduce(
+                                (sum, arr: any) => sum + (arr as any[]).length,
+                                0
+                              );
+                              const isActive =
+                                selectedSourceForProvider === sourceKey;
+                              return (
+                                <button
+                                  key={sourceKey}
+                                  className={`btn ${
+                                    isActive ? "btn--primary" : "btn--ghost"
+                                  }`}
+                                  onClick={() =>
+                                    setProviderSourceTabs((prev) => ({
+                                      ...prev,
+                                      [providerKey]: sourceKey,
+                                    }))
+                                  }
+                                  style={{
+                                    fontSize: "11px",
+                                    padding: "4px 8px",
+                                  }}
+                                >
+                                  {sourceKey}
+                                  <span
+                                    style={{
+                                      marginLeft: 6,
+                                      fontSize: "11px",
+                                      color: "#6b7280",
+                                      backgroundColor: "#f3f4f6",
+                                      padding: "1px 5px",
+                                      borderRadius: 10,
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {sourceCount}
+                                  </span>
+                                </button>
+                              );
+                            });
+                          })()}
+                        </div>
                       </div>
-                    ))}
+                    </div>
+
+                    <div style={{ padding: "0 16px 16px 16px" }}>
+                      {(() => {
+                        const available = Object.keys(sourcesByProvider).map(
+                          (k) => String(k).trim()
+                        );
+                        const saved = providerSourceTabs[providerKey];
+                        const selectedSource = available.includes(saved)
+                          ? saved
+                          : available[0];
+                        return Object.entries(sourcesByProvider).map(
+                          ([rawSourceKey, communes]) => {
+                            const sourceKey = String(rawSourceKey).trim();
+                            if (sourceKey !== selectedSource) return null;
+
+                            const allDevices = Object.values(
+                              communes
+                            ).flat() as any[];
+                            return (
+                              <ul
+                                key={sourceKey}
+                                className="list"
+                                style={{ margin: 0 }}
+                              >
+                                {allDevices.map((d: any) => (
+                                  <DeviceCard
+                                    key={d.maThietBi}
+                                    d={d}
+                                    onEdit={onEdit}
+                                    isSelected={
+                                      selectedDeviceId === d.maThietBi
+                                    }
+                                  />
+                                ))}
+                              </ul>
+                            );
+                          }
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         )}
       </div>

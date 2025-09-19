@@ -13,19 +13,105 @@ import "./styles/global.css";
 
 function Main() {
   const { authed, login, logout } = useAuthState();
-  const [editDevice, setEditDevice] = useState<Device | null>(null);
+  const [editDevice, setEditDevice] = useState<Device | null>(() => {
+    try {
+      const raw = localStorage.getItem("cd_editing_device_json");
+      return raw ? (JSON.parse(raw) as Device) : null;
+    } catch {
+      return null;
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const EDIT_KEY = "cd_editing_device_id";
+  const EDIT_DEVICE_KEY = "cd_editing_device_json";
+  const SELECT_KEY = "cd_selected_device_id";
 
-  // Filter and layout state
-  const [q, setQ] = useState("");
-  const [provider, setProvider] = useState<string>("");
-  const [source, setSource] = useState<string>("");
-  const [layoutMode, setLayoutMode] = useState<"horizontal" | "columns">(
-    "columns"
+  // Filter and layout state (persisted)
+  const UI_STATE_KEY = "cd_list_ui";
+  const [q, setQ] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem(UI_STATE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed?.q ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [provider, setProvider] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem(UI_STATE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed?.provider ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [source, setSource] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem(UI_STATE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed?.source ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [layoutMode, setLayoutMode] = useState<"horizontal" | "columns">(() => {
+    try {
+      const raw = localStorage.getItem(UI_STATE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return (parsed?.layoutMode as "horizontal" | "columns") ?? "columns";
+    } catch {
+      return "columns";
+    }
+  });
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(
+    () => {
+      try {
+        return localStorage.getItem(SELECT_KEY) || null;
+      } catch {
+        return null;
+      }
+    }
   );
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"known" | "unknown">("known");
+  const [activeTab, setActiveTab] = useState<"known" | "unknown">(() => {
+    try {
+      const raw = localStorage.getItem(UI_STATE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return (parsed?.activeTab as "known" | "unknown") ?? "known";
+    } catch {
+      return "known";
+    }
+  });
+
+  // Persist UI state when it changes
+  useEffect(() => {
+    try {
+      const next = { q, provider, source, layoutMode, activeTab };
+      localStorage.setItem(UI_STATE_KEY, JSON.stringify(next));
+    } catch {}
+  }, [q, provider, source, layoutMode, activeTab]);
+  const STORAGE_KEY_TABS = "cd_provider_source_tabs";
+  const [providerSourceTabs, setProviderSourceTabs] = useState<
+    Record<string, string>
+  >(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_TABS);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY_TABS,
+        JSON.stringify(providerSourceTabs)
+      );
+    } catch {}
+  }, [providerSourceTabs]);
 
   // Auto-logout wiring: schedule by token expiry and listen 401 events
   useEffect(() => {
@@ -46,6 +132,52 @@ function Main() {
     queryFn: () => fetchDeviceList(),
     enabled: !!token && authed && !isTokenExpired(),
   });
+
+  // Restore editing screen after reload when data arrives
+  useEffect(() => {
+    try {
+      if (editDevice) return;
+      const savedId = localStorage.getItem(EDIT_KEY) || "";
+      if (!savedId) return;
+      const list = (data as any)?.data as any[] | undefined;
+      if (!list || !Array.isArray(list)) return;
+      const found = list.find(
+        (d: any) => String(d.maThietBi || "") === savedId
+      );
+      if (found) {
+        const mapped: Device = {
+          baseUrl: found.baseUrl || "",
+          mqttUrl: found.mqttUrl || "",
+          username: found.username || "",
+          password: found.password || "",
+          maThietBi: found.maThietBi || "",
+          tenThietBi: found.tenThietBi || "",
+          maNhaCungCap: found.maNhaCungCap || "",
+          tenNhaCungCap: found.tenNhaCungCap || "",
+          nguonID: found.nguonID || "",
+          tenNguon: found.tenNguon || "",
+          dichID: found.dichID || "",
+          tenDich: found.tenDich || "",
+          ketNoi: !!found.ketNoi,
+          kinhDo:
+            found.kinhDo === undefined ||
+            found.kinhDo === null ||
+            found.kinhDo === ""
+              ? null
+              : String(found.kinhDo),
+          viDo:
+            found.viDo === undefined || found.viDo === null || found.viDo === ""
+              ? null
+              : String(found.viDo),
+        };
+        setEditDevice(mapped);
+        setSelectedDeviceId(savedId);
+      } else {
+        localStorage.removeItem(EDIT_KEY);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   function handleEdit(d: any) {
     const mapped: Device = {
@@ -72,7 +204,15 @@ function Main() {
           : String(d.viDo),
     };
     setSaveMsg(null);
-    setSelectedDeviceId(d.maThietBi || "");
+    const id = d.maThietBi || "";
+    setSelectedDeviceId(id);
+    try {
+      if (id) {
+        localStorage.setItem(EDIT_KEY, id);
+        localStorage.setItem(SELECT_KEY, id);
+      }
+      localStorage.setItem(EDIT_DEVICE_KEY, JSON.stringify(mapped));
+    } catch {}
     setEditDevice(mapped);
   }
 
@@ -86,6 +226,10 @@ function Main() {
       if (result?.status === 1) {
         setSaveMsg(result.message || "Cập nhật thành công!");
         setEditDevice(null);
+        try {
+          localStorage.removeItem(EDIT_KEY);
+          localStorage.removeItem(EDIT_DEVICE_KEY);
+        } catch {}
         refetch();
       } else {
         setSaveMsg(result?.message || "Cập nhật thất bại!");
@@ -103,7 +247,13 @@ function Main() {
     return (
       <DeviceConfigView
         device={editDevice}
-        onBack={() => setEditDevice(null)}
+        onBack={() => {
+          setEditDevice(null);
+          try {
+            localStorage.removeItem(EDIT_KEY);
+            localStorage.removeItem(EDIT_DEVICE_KEY);
+          } catch {}
+        }}
         onSave={handleSave}
         onLogout={logout}
         saving={saving}
@@ -131,6 +281,8 @@ function Main() {
       selectedDeviceId={selectedDeviceId}
       activeTab={activeTab}
       setActiveTab={setActiveTab}
+      providerSourceTabs={providerSourceTabs}
+      setProviderSourceTabs={setProviderSourceTabs}
     />
   );
 }

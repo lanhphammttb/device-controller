@@ -90,16 +90,6 @@ export default function DeviceConfigView({
 
   return (
     <section className="view">
-      <TopBar
-        title={`Cấu hình: ${
-          device.tenThietBi || device.maThietBi || "Thiết bị"
-        }`}
-        right={
-          <Button variant="ghost" onClick={onLogout}>
-            Đăng xuất
-          </Button>
-        }
-      />
       <div className="content">
         {saving && <div className="notice notice--info">Đang lưu...</div>}
         {saveMsg && (
