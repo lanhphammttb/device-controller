@@ -66,12 +66,15 @@ export default function DeviceListView({
     return ["", ...Array.from(set)];
   }, [data, provider]);
 
-  // Ensure current source remains valid for selected provider
+  // Ensure current source remains valid for selected provider (after data loads)
   useEffect(() => {
+    if (isLoading) return;
+    const hasRealSources = sourcesForProvider.length > 1; // more than just "Tất cả"
+    if (!hasRealSources) return;
     if (source && !sourcesForProvider.includes(source)) {
       setSource("");
     }
-  }, [provider, sourcesForProvider]);
+  }, [provider, sourcesForProvider, isLoading]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
