@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import TopBar from "../components/layout/TopBar";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
-import { Device } from "../types/device";
+import { Device, DeviceDraft } from "../types/device";
 import { getToken } from "../services/authToken";
 import { updateConnectDevice } from "../services/authService";
+import { useDrafts } from "../hooks/useDrafts";
 
 export default function DeviceConfigView({
   device,
@@ -14,36 +15,71 @@ export default function DeviceConfigView({
   saving,
   saveMsg,
 }: {
-  device: Device;
+  device: DeviceDraft;
   onBack: () => void;
-  onSave: (d: Device) => void;
+  onSave: (d: DeviceDraft) => void;
   onLogout: () => void;
   saving?: boolean;
   saveMsg?: string | null;
 }) {
-  const [form, setForm] = useState<Device>(device);
+  const [form, setForm] = useState<DeviceDraft>(device);
   const [msg, setMsg] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const prevDeviceIdRef = useRef<string>("");
+  const [isFirstRender, setIsFirstRender] = useState(true);
 
+  const { updateDraft } = useDrafts();
+
+    // ✅ FIX: Only reset when DIFFERENT device is opened
   useEffect(() => {
-    setForm(device);
+    if (prevDeviceIdRef.current === device.maThietBi && !isFirstRender) {
+      return;
+    }
+
+    // New device opened → reset form
+    setForm({
+      ...device,
+      __draft: device.__draft ?? false,  // ← Giữ nguyên nếu có
+    });
     setErrors({});
     setMsg("");
+
+    prevDeviceIdRef.current = device.maThietBi;
+    setIsFirstRender(false);
   }, [device]);
+
+  useEffect(() => {
+    if (!form.maThietBi) return;
+
+    const timer = setInterval(() => {
+      updateDraft(form.maThietBi, form);
+    }, 30000);
+
+    return () => clearInterval(timer);
+  }, [form, updateDraft]);
+
   const update = <K extends keyof Device>(k: K, v: Device[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
   async function handleKetNoi(v: boolean) {
     const t = getToken();
-    if (t && form.maThietBi) {
+    if (!t || !form.maThietBi) return;
+
+    try {
       await updateConnectDevice(form.maThietBi, v, t);
       setForm((p) => ({ ...p, ketNoi: v }));
+
+      // ✅ Update draft as well
+      updateDraft(form.maThietBi, { ketNoi: v });
+    } catch (error) {
+      console.error("Failed to update connection status", error);
+      setMsg("Cập nhật trạng thái thất bại!");
     }
   }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    // Validate tất cả trường trừ kinhDo/viDo
+
     const requiredKeys = [
       "tenThietBi",
       "maThietBi",
@@ -58,6 +94,7 @@ export default function DeviceConfigView({
       "dichID",
       "tenDich",
     ] as const;
+
     const labels: Record<string, string> = {
       tenThietBi: "Tên thiết bị",
       maThietBi: "Mã thiết bị",
@@ -72,6 +109,7 @@ export default function DeviceConfigView({
       dichID: "Đích ID",
       tenDich: "Tên đích",
     };
+
     const newErrors: Record<string, string> = {};
     for (const k of requiredKeys) {
       const v = (form as any)[k];
@@ -79,14 +117,17 @@ export default function DeviceConfigView({
         newErrors[k] = `Vui lòng nhập ${labels[k]}.`;
       }
     }
+
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
       setMsg("Vui lòng điền đầy đủ thông tin bắt buộc.");
       return;
     }
+
     setMsg("");
     onSave(form);
   }
+
 
   return (
     <section className="view">

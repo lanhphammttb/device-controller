@@ -3,6 +3,15 @@ import TopBar from "../components/layout/TopBar";
 import Button from "../components/ui/Button";
 import { DeviceCard } from "../components/device/DeviceCard";
 import { getUserClaims } from "../services/authToken";
+import {
+  DeviceImportModal,
+  ImportDraft,
+  ProviderInfo,
+} from "./DeviceImportModal";
+import { DestinationInfo, SourceInfo } from "../types/import";
+import { Device, DeviceDraft } from "../types/device";
+import { useDrafts } from "../hooks/useDrafts";
+export const DRAFT_KEY = 'device_import_drafts';
 
 export default function DeviceListView({
   data,
@@ -45,15 +54,99 @@ export default function DeviceListView({
     React.SetStateAction<Record<string, string>>
   >;
 }) {
-  // providerSourceTabs state is managed by App and persisted there
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const user = getUserClaims();
+  const { drafts, addDraft } = useDrafts();
 
-  const providers = useMemo(() => {
+  const mergedData = useMemo(() => {
+    const map = new Map<string, DeviceDraft>();
+
+    // 1. Add server data with __draft = false
+    (data || []).forEach((d: Device) => {
+      map.set(d.maThietBi, {
+        ...d,
+        __draft: false,
+      });
+    });
+
+    // 2. Override with draft (from Context)
+    drafts.forEach((draft: DeviceDraft) => {
+      if (draft.maThietBi) {
+        map.set(draft.maThietBi, {
+          ...draft,
+          __draft: true,
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [data, drafts]);
+
+  // Danh sách provider string cho dropdown filter
+  const providerList = useMemo(() => {
     const set = new Set<string>();
     (data || []).forEach((d: any) => {
       if (d.maNhaCungCap) set.add(String(d.maNhaCungCap));
     });
     return ["", ...Array.from(set)];
+  }, [data]);
+
+  // Convert data sang ProviderInfo[] để import
+  const providersForImport = useMemo(() => {
+    const map = new Map<string, ProviderInfo>();
+    (data || []).forEach((d: any) => {
+      if (d.maNhaCungCap && !map.has(d.maNhaCungCap)) {
+        map.set(d.maNhaCungCap, {
+          id: d.maNhaCungCap,
+          name: d.tenNhaCungCap || d.maNhaCungCap,
+          baseUrl: d.baseUrl || "",
+          mqttUrl: d.mqttUrl || "",
+          username: d.username || "",
+          password: d.password || "",
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [data]);
+
+  // Convert data sang SourceInfo[] để import
+  const sourcesForImport = useMemo<SourceInfo[]>(() => {
+    const map = new Map<string, SourceInfo>();
+
+    (data || []).forEach((d: any) => {
+      if (!d.nguonID || !d.dichID) return;
+
+      if (!map.has(d.nguonID)) {
+        map.set(d.nguonID, {
+          id: d.nguonID,
+          name: d.tenNguon || d.nguonID,
+          dichID: d.dichID,
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [data]);
+
+  const destinationsForImport = useMemo<DestinationInfo[]>(() => {
+    const map = new Map<string, DestinationInfo>();
+
+    (data || []).forEach((d: any) => {
+      if (!d.dichID) return;
+
+      if (!map.has(d.dichID)) {
+        map.set(d.dichID, {
+          id: d.dichID,
+          name: d.tenDich || d.dichID,
+          baseUrl: d.baseUrl || "",
+          mqttUrl: d.mqttUrl || "",
+          username: d.username || "",
+          password: d.password || "",
+        });
+      }
+    });
+
+    return Array.from(map.values());
   }, [data]);
 
   const sourcesForProvider = useMemo(() => {
@@ -69,16 +162,16 @@ export default function DeviceListView({
   // Ensure current source remains valid for selected provider (after data loads)
   useEffect(() => {
     if (isLoading) return;
-    const hasRealSources = sourcesForProvider.length > 1; // more than just "Tất cả"
+    const hasRealSources = sourcesForProvider.length > 1;
     if (!hasRealSources) return;
     if (source && !sourcesForProvider.includes(source)) {
       setSource("");
     }
-  }, [provider, sourcesForProvider, isLoading]);
+  }, [provider, sourcesForProvider, isLoading, source, setSource]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    return (data || []).filter((d: any) => {
+    return (mergedData || []).filter((d: DeviceDraft) => {
       const matchText =
         !term ||
         String(d.maThietBi || "")
@@ -99,14 +192,14 @@ export default function DeviceListView({
           : activeTab === "known"
           ? isKnownProvider
           : !isKnownProvider;
+
       return (
         matchText && matchProvider && matchSource && notStringName && matchTab
       );
     });
-  }, [data, q, provider, source, activeTab, layoutMode]);
+  }, [mergedData, q, provider, source, activeTab, layoutMode]);
 
   const groupedData = useMemo(() => {
-    // Provider -> Source (tenNguon) -> Commune (tenDich) -> Devices
     const groups: {
       [provider: string]: { [source: string]: { [commune: string]: any[] } };
     } = {};
@@ -131,8 +224,17 @@ export default function DeviceListView({
     return groups;
   }, [filtered]);
 
-  const totalCount = data?.length || 0;
-  const filteredCount = filtered.length;
+  const handleImportSuccess = (importedDrafts: ImportDraft[]) => {
+    importedDrafts.forEach((d: ImportDraft) => {
+      addDraft({
+        ...d,
+        __draft: true,
+      } as DeviceDraft);
+    });
+
+    setImportModalOpen(false);
+  };
+
   return (
     <section className="view">
       <div className="content">
@@ -155,7 +257,14 @@ export default function DeviceListView({
                 </span>
               )}
             </div>
-            <div style={{ display: "flex", gap: "4px" }}>
+            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+              <Button
+                className="btn--primary"
+                onClick={() => setImportModalOpen(true)}
+                style={{ padding: "8px 12px", fontSize: "12px" }}
+              >
+                📥 Import nháp
+              </Button>
               <button
                 className={`btn ${
                   layoutMode === "horizontal" ? "btn--primary" : "btn--ghost"
@@ -252,7 +361,7 @@ export default function DeviceListView({
                 onChange={(e) => setProvider(e.target.value)}
                 style={{ width: "100%" }}
               >
-                {providers.map((p) => (
+                {providerList.map((p) => (
                   <option key={p || "all"} value={p}>
                     {p ? p : "Tất cả"}
                   </option>
@@ -310,6 +419,7 @@ export default function DeviceListView({
             )}
           </div>
         </div>
+
         {isLoading && (
           <div className="notice notice--info">
             Đang tải danh sách thiết bị...
@@ -338,12 +448,7 @@ export default function DeviceListView({
               ([providerKey, sourcesByProvider]) => (
                 <div key={providerKey} style={{ flex: "1", minWidth: "300px" }}>
                   <div className="card" style={{ marginBottom: "16px" }}>
-                    {/* Compact header: provider + source tabs on one line */}
-                    <div
-                      style={{
-                        padding: "10px 16px 16px 16px",
-                      }}
-                    >
+                    <div style={{ padding: "10px 16px 16px 16px" }}>
                       <div
                         style={{
                           display: "flex",
@@ -382,7 +487,9 @@ export default function DeviceListView({
                             ).map((k) => String(k).trim());
                             const saved = providerSourceTabs[providerKey];
                             const selectedSourceForProvider =
-                              available.includes(saved) ? saved : available[0];
+                              available.includes(saved)
+                                ? saved
+                                : available[0];
                             return available.map((sourceKey) => {
                               const sourceCount = Object.values(
                                 sourcesByProvider[sourceKey] || {}
@@ -477,6 +584,15 @@ export default function DeviceListView({
           </div>
         )}
       </div>
+
+      <DeviceImportModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImportSuccess={handleImportSuccess}
+        providers={providersForImport}
+        sources={sourcesForImport}
+        destinations={destinationsForImport}
+      />
     </section>
   );
 }

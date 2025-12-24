@@ -42,6 +42,11 @@ export function DeviceCard({
           <span className="list__subtitle-faded">
             • {d.maNhaCungCap || "—"}
           </span>
+          {d.__draft && (
+            <Badge tone="neutral">
+              Draft
+            </Badge>
+          )}
         </div>
       </div>
 

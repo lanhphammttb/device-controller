@@ -2,25 +2,29 @@ import React, { useEffect, useState } from "react";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import Login from "./features/auth/Login";
-import DeviceListView from "./views/DeviceListView";
+import DeviceListView, { DRAFT_KEY } from "./views/DeviceListView";
 import DeviceConfigView from "./views/DeviceConfigView";
 import { getToken, onLogoutEvent, isTokenExpired } from "./services/authToken";
 import { scheduleAutoLogout } from "./services/authService";
 import { fetchDeviceList, updateDevice } from "./services/authService";
 import { useAuthState } from "./hooks/useAuth";
-import { Device } from "./types/device";
+import { Device, DeviceDraft } from "./types/device";
 import "./styles/global.css";
+import { DraftProvider } from "./contexts/DraftContext";
+import { useDrafts } from "./hooks/useDrafts";
 
 function Main() {
   const { authed, login, logout } = useAuthState();
-  const [editDevice, setEditDevice] = useState<Device | null>(() => {
+  const { removeDraft } = useDrafts();
+  const [editDevice, setEditDevice] = useState<DeviceDraft | null>(() => {
     try {
       const raw = localStorage.getItem("cd_editing_device_json");
-      return raw ? (JSON.parse(raw) as Device) : null;
+      return raw ? (JSON.parse(raw) as DeviceDraft) : null;
     } catch {
       return null;
     }
   });
+
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const EDIT_KEY = "cd_editing_device_id";
@@ -180,7 +184,7 @@ function Main() {
   }, [data]);
 
   function handleEdit(d: any) {
-    const mapped: Device = {
+    const mapped: DeviceDraft = {
       baseUrl: d.baseUrl || "",
       mqttUrl: d.mqttUrl || "",
       username: d.username || "",
@@ -202,6 +206,7 @@ function Main() {
         d.viDo === undefined || d.viDo === null || d.viDo === ""
           ? null
           : String(d.viDo),
+      __draft: true,
     };
     setSaveMsg(null);
     const id = d.maThietBi || "";
@@ -226,10 +231,18 @@ function Main() {
       if (result?.status === 1) {
         setSaveMsg(result.message || "Cập nhật thành công!");
         setEditDevice(null);
+
+        // ✅ Remove from draft via context
+        removeDraft(updated.maThietBi);
+
+        // Cleanup localStorage
         try {
           localStorage.removeItem(EDIT_KEY);
           localStorage.removeItem(EDIT_DEVICE_KEY);
-        } catch {}
+          localStorage.removeItem(SELECT_KEY);
+        } catch (e) {
+          console.error("Failed to cleanup localStorage", e);
+        }
         refetch();
       } else {
         setSaveMsg(result?.message || "Cập nhật thất bại!");
@@ -252,7 +265,10 @@ function Main() {
           try {
             localStorage.removeItem(EDIT_KEY);
             localStorage.removeItem(EDIT_DEVICE_KEY);
-          } catch {}
+            localStorage.removeItem(SELECT_KEY);
+          } catch (e) {
+            console.error("Cleanup failed", e);
+          }
         }}
         onSave={handleSave}
         onLogout={logout}
@@ -289,8 +305,10 @@ function Main() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Main />
-    </QueryClientProvider>
+    <DraftProvider>
+      <QueryClientProvider client={queryClient}>
+        <Main />
+      </QueryClientProvider>
+    </DraftProvider>
   );
 }

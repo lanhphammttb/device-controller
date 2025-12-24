@@ -15,3 +15,7 @@ export type Device = {
   kinhDo?: string | null;
   viDo?: string | null;
 };
+
+export type DeviceDraft = Device & {
+  __draft?: boolean;
+};
