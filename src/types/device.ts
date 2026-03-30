@@ -12,6 +12,8 @@ export type Device = {
   dichID: string;
   tenDich: string;
   ketNoi: boolean;
+  authUrl?: string;
+  registerUrl?: string;
   kinhDo?: string | null;
   viDo?: string | null;
 };

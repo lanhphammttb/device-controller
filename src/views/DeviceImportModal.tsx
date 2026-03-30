@@ -14,6 +14,8 @@ export interface ImportDraft {
   kinhDo?: string;
   baseUrl?: string;
   mqttUrl?: string;
+  authUrl?: string;
+  registerUrl?: string;
   username?: string;
   password?: string;
 }
@@ -23,6 +25,8 @@ export interface ProviderInfo {
   name: string;
   baseUrl: string;
   mqttUrl: string;
+  authUrl?: string;
+  registerUrl?: string;
   username: string;
   password: string;
 }
@@ -83,6 +87,8 @@ function useDeviceImportAdvanced(  sources: SourceInfo[], destinations: Destinat
 
         baseUrl: destination?.baseUrl,
         mqttUrl: destination?.mqttUrl,
+        authUrl: destination?.authUrl,
+        registerUrl: destination?.registerUrl,
         username: destination?.username,
         password: destination?.password,
 
@@ -172,6 +178,8 @@ function useDeviceImportAdvanced(  sources: SourceInfo[], destinations: Destinat
               tenDich: destination.name,
               baseUrl: destination.baseUrl,
               mqttUrl: destination.mqttUrl,
+              authUrl: destination.authUrl,
+              registerUrl: destination.registerUrl,
               username: destination.username,
               password: destination.password,
             }
@@ -459,6 +467,8 @@ export function DeviceImportModal({
                         <th style={styles.tableHeader}>Kinh Độ</th>
                         <th style={styles.tableHeader}>BaseUrl</th>
                         <th style={styles.tableHeader}>MqttUrl</th>
+                        <th style={styles.tableHeader}>AuthUrl</th>
+                        <th style={styles.tableHeader}>RegisterUrl</th>
                         <th style={styles.tableHeader}>Username</th>
                         <th style={styles.tableHeader}>Password</th>
                       </tr>
@@ -641,6 +651,26 @@ export function DeviceImportModal({
                                 value={draft.mqttUrl || ""}
                                 onChange={(e) =>
                                   updateDraft(idx, "mqttUrl", e.target.value)
+                                }
+                                style={styles.input}
+                              />
+                            </td>
+                            <td style={styles.tableCell}>
+                              <input
+                                type="text"
+                                value={draft.authUrl || ""}
+                                onChange={(e) =>
+                                  updateDraft(idx, "authUrl", e.target.value)
+                                }
+                                style={styles.input}
+                              />
+                            </td>
+                            <td style={styles.tableCell}>
+                              <input
+                                type="text"
+                                value={draft.registerUrl || ""}
+                                onChange={(e) =>
+                                  updateDraft(idx, "registerUrl", e.target.value)
                                 }
                                 style={styles.input}
                               />

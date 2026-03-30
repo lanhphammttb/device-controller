@@ -9,6 +9,8 @@ export interface DestinationInfo {
   name: string;        // tenDich
   baseUrl: string;
   mqttUrl: string;
+  authUrl?: string;
+  registerUrl?: string;
   username: string;
   password: string;
 }
@@ -25,6 +27,8 @@ export interface ImportDraft {
 
   baseUrl: string;
   mqttUrl: string;
+  authUrl?: string;
+  registerUrl?: string;
   username: string;
   password: string;
 

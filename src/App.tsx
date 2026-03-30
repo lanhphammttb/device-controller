@@ -152,6 +152,8 @@ function Main() {
         const mapped: Device = {
           baseUrl: found.baseUrl || "",
           mqttUrl: found.mqttUrl || "",
+          authUrl: found.authUrl || "",
+          registerUrl: found.registerUrl || "",
           username: found.username || "",
           password: found.password || "",
           maThietBi: found.maThietBi || "",
@@ -187,6 +189,8 @@ function Main() {
     const mapped: DeviceDraft = {
       baseUrl: d.baseUrl || "",
       mqttUrl: d.mqttUrl || "",
+      authUrl: d.authUrl || "",
+      registerUrl: d.registerUrl || "",
       username: d.username || "",
       password: d.password || "",
       maThietBi: d.maThietBi || "",

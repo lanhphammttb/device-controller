@@ -101,6 +101,8 @@ export default function DeviceListView({
           name: d.tenNhaCungCap || d.maNhaCungCap,
           baseUrl: d.baseUrl || "",
           mqttUrl: d.mqttUrl || "",
+          authUrl: d.authUrl || "",
+          registerUrl: d.registerUrl || "",
           username: d.username || "",
           password: d.password || "",
         });
@@ -140,6 +142,8 @@ export default function DeviceListView({
           name: d.tenDich || d.dichID,
           baseUrl: d.baseUrl || "",
           mqttUrl: d.mqttUrl || "",
+          authUrl: d.authUrl || "",
+          registerUrl: d.registerUrl || "",
           username: d.username || "",
           password: d.password || "",
         });
